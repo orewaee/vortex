@@ -71,7 +71,6 @@ func (controller *RestController) MuxV1() http.Handler {
 
 	var counter atomic.Int64
 
-	log.Println("foo")
 	m.HandleConnect(func(session *melody.Session) {
 		id := counter.Add(1)
 		session.Set("id", id)

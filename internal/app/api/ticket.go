@@ -10,7 +10,7 @@ type TicketApi interface {
 	GetTicketById(ctx context.Context, id string) (*domain.Ticket, error)
 	GetTicketByChatId(ctx context.Context, chatId int64) (*domain.Ticket, error)
 
-	OpenTicket(ctx context.Context, chatId int64) (*domain.Ticket, error)
+	OpenTicket(ctx context.Context, chatId int64, topic string) (*domain.Ticket, error)
 	CloseTicketById(ctx context.Context, id string) error
 	CloseTicketByChatId(ctx context.Context, chatId int64) error
 }

@@ -46,6 +46,7 @@ func (handler *TicketsHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 		data[i] = &dtos.Ticket{
 			Id:        ticket.Id,
 			ChatId:    ticket.ChatId,
+			Topic:     ticket.Topic,
 			CreatedAt: ticket.CreatedAt,
 		}
 	}

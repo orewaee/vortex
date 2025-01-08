@@ -6,6 +6,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/orewaee/vortex/internal/app/api"
 	"log"
+	"strings"
 )
 
 type Bot struct {
@@ -38,7 +39,6 @@ func (bot *Bot) MustRun() {
 
 		for {
 			message := <-messages
-			log.Println("BOT", message)
 			if message.FromSupport {
 				ticket, err := bot.ticketApi.GetTicketById(ctx, message.TicketId)
 				if err != nil {
@@ -62,8 +62,11 @@ func (bot *Bot) MustRun() {
 			continue
 		}
 
-		if message.Text == "/ticket" {
-			ticket, err := bot.ticketApi.OpenTicket(ctx, message.Chat.ID)
+		if strings.HasPrefix(message.Text, "/ticket") {
+			topic := message.CommandArguments()
+			log.Println("topic:", topic)
+
+			ticket, err := bot.ticketApi.OpenTicket(ctx, message.Chat.ID, topic)
 
 			text := ""
 			if err != nil {

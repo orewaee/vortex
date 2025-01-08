@@ -18,6 +18,7 @@ func NewTicketRepo(pool *pgxpool.Pool) (repo.TicketReadWriter, error) {
 	CREATE TABLE IF NOT EXISTS tickets (
 	    id CHAR(8) PRIMARY KEY,
 	    chat_id BIGINT UNIQUE NOT NULL,
+	    topic VARCHAR(64) NOT NULL,
 	    created_at TIMESTAMP WITH TIME ZONE
 	)
 	`
@@ -42,7 +43,7 @@ func (repo *TicketRepo) GetTickets(ctx context.Context, limit, offset int) ([]*d
 
 	tickets, err := pgx.CollectRows[*domain.Ticket](rows, func(row pgx.CollectableRow) (*domain.Ticket, error) {
 		ticket := new(domain.Ticket)
-		if err := row.Scan(&ticket.Id, &ticket.ChatId, &ticket.CreatedAt); err != nil {
+		if err := row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.CreatedAt); err != nil {
 			return nil, err
 		}
 
@@ -64,7 +65,7 @@ func (repo *TicketRepo) GetTicketById(ctx context.Context, id string) (*domain.T
 	row := repo.pool.QueryRow(ctx, "SELECT * FROM tickets WHERE id = $1", id)
 
 	ticket := new(domain.Ticket)
-	err := row.Scan(&ticket.Id, &ticket.ChatId, &ticket.CreatedAt)
+	err := row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.CreatedAt)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrTicketNotFound
@@ -81,7 +82,7 @@ func (repo *TicketRepo) GetTicketByChatId(ctx context.Context, chatId int64) (*d
 	row := repo.pool.QueryRow(ctx, "SELECT * FROM tickets WHERE chat_id = $1", chatId)
 
 	ticket := new(domain.Ticket)
-	err := row.Scan(&ticket.Id, &ticket.ChatId, &ticket.CreatedAt)
+	err := row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.CreatedAt)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrTicketNotFound
@@ -95,8 +96,8 @@ func (repo *TicketRepo) GetTicketByChatId(ctx context.Context, chatId int64) (*d
 }
 
 func (repo *TicketRepo) AddTicket(ctx context.Context, ticket *domain.Ticket) error {
-	sql := "INSERT INTO tickets (id, chat_id, created_at) values ($1, $2, $3)"
-	_, err := repo.pool.Exec(ctx, sql, ticket.Id, ticket.ChatId, ticket.CreatedAt)
+	sql := "INSERT INTO tickets (id, chat_id, topic, created_at) values ($1, $2, $3, $4)"
+	_, err := repo.pool.Exec(ctx, sql, ticket.Id, ticket.ChatId, ticket.Topic, ticket.CreatedAt)
 
 	return err
 }

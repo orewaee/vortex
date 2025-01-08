@@ -31,7 +31,7 @@ func (service *TicketService) GetTicketByChatId(ctx context.Context, chatId int6
 	return service.ticketRepo.GetTicketByChatId(ctx, chatId)
 }
 
-func (service *TicketService) OpenTicket(ctx context.Context, chatId int64) (*domain.Ticket, error) {
+func (service *TicketService) OpenTicket(ctx context.Context, chatId int64, topic string) (*domain.Ticket, error) {
 	_, err := service.ticketRepo.GetTicketByChatId(ctx, chatId)
 
 	if err != nil && !errors.Is(err, domain.ErrTicketNotFound) {
@@ -45,6 +45,7 @@ func (service *TicketService) OpenTicket(ctx context.Context, chatId int64) (*do
 	ticket := &domain.Ticket{
 		Id:        gonanoid.MustGenerate(typedenv.String("ALPHABET"), 8),
 		ChatId:    chatId,
+		Topic:     topic,
 		CreatedAt: time.Now(),
 	}
 
