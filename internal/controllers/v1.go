@@ -16,6 +16,9 @@ func (controller *RestController) MuxV1() http.Handler {
 	v1 := http.NewServeMux()
 
 	v1.Handle("POST /login", handlers.NewLoginHandler(controller.authService))
+	v1.HandleFunc("OPTIONS /login", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	})
 	v1.Handle("POST /refresh", handlers.NewRefreshHandler(controller.authService))
 	// v1.Handle("POST /register", nil)
 
@@ -49,8 +52,8 @@ func (controller *RestController) MuxV1() http.Handler {
 	currentSessions := make(map[string]map[int64]*melody.Session)
 
 	go func() {
-		messages := controller.chatApi.Connect()
-		defer controller.chatApi.Disconnect(messages)
+		messages := controller.chatApi.Subscribe()
+		defer controller.chatApi.Unsubscribe(messages)
 		log.Println("listening chat messages in controller...")
 		for {
 			message := <-messages
@@ -93,10 +96,12 @@ func (controller *RestController) MuxV1() http.Handler {
 	})
 
 	m.HandleMessage(func(session *melody.Session, message []byte) {
-		name := fmt.Sprintf("%s", session.Request.Context().Value("name"))
+		ctx := session.Request.Context()
+
+		name := fmt.Sprintf("%s", ctx.Value("name"))
 		ticketId := session.Request.PathValue("ticket_id")
 
-		controller.chatApi.SendMessage(name, true, ticketId, string(message))
+		controller.chatApi.SendMessage(ctx, name, true, ticketId, string(message))
 	})
 
 	m.HandleDisconnect(func(session *melody.Session) {

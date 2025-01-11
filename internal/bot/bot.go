@@ -34,7 +34,8 @@ func (bot *Bot) MustRun() {
 	updates := bot.botApi.GetUpdatesChan(updateConfig)
 
 	go func() {
-		messages := bot.chatApi.Connect()
+		messages := bot.chatApi.Subscribe()
+		defer bot.chatApi.Unsubscribe(messages)
 		log.Println("listening chat messages in bot...")
 
 		for {
@@ -109,6 +110,12 @@ func (bot *Bot) MustRun() {
 			continue
 		}
 
-		bot.chatApi.SendMessage(message.From.UserName, false, ticket.Id, message.Text)
+		from := message.From
+		name := from.UserName
+		if name == "" {
+			name = fmt.Sprintf("%s %s", from.FirstName, from.LastName)
+		}
+
+		bot.chatApi.SendMessage(ctx, name, false, ticket.Id, message.Text)
 	}
 }

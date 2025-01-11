@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/orewaee/vortex/internal/app/api"
 	"github.com/orewaee/vortex/internal/handlers"
+	"github.com/orewaee/vortex/internal/middlewares"
 	"log"
 	"net/http"
 )
@@ -23,7 +24,7 @@ func (controller *RestController) Run(addr string) error {
 
 	mux.Handle("GET /ping", &handlers.PingHandler{})
 
-	mux.Handle("/v1/", controller.MuxV1())
+	mux.Handle("/v1/", middlewares.CorsMiddleware(controller.MuxV1()))
 
 	server := &http.Server{
 		Addr:    addr,

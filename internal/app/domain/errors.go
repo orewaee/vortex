@@ -11,4 +11,6 @@ var (
 	ErrTicketAlreadyExists = errors.New("ticket already exists")
 	ErrNoConnection        = errors.New("no connection found")
 	ErrAccountNotFound     = errors.New("account not found")
+    ErrNoMessages          = errors.New("no messages found")
 )
+

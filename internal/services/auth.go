@@ -58,6 +58,6 @@ func (service *AuthService) Login(ctx context.Context, name string, password str
 	return access, refresh, nil
 }
 
-func (service *AuthService) Refresh(ctx context.Context, token string) (string, string, error) {
-	return service.tokenService.RefreshToken(ctx, token)
+func (service *AuthService) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
+	return service.tokenService.RefreshToken(ctx, refreshToken)
 }

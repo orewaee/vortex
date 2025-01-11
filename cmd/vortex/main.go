@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/orewaee/typedenv"
 	"github.com/orewaee/vortex/internal/app/api"
 	"github.com/orewaee/vortex/internal/bot"
@@ -11,6 +12,7 @@ import (
 	"github.com/orewaee/vortex/internal/repo/postgres"
 	"github.com/orewaee/vortex/internal/repo/redis"
 	"github.com/orewaee/vortex/internal/services"
+	goredis "github.com/redis/go-redis/v9"
 )
 
 func main() {
@@ -18,16 +20,19 @@ func main() {
 
 	ctx := context.Background()
 
-	tokenService := mustInitTokenService(ctx)
-	authService := services.NewAuthService(tokenService)
-	ticketService := mustInitTicketService(ctx)
+	postgresPool := mustInitPostgres(ctx)
+	redisClient := mustInitRedis(ctx)
 
-	chatApi := services.NewChatService()
+	tokenApi := mustInitTokenApi(redisClient)
+	authApi := services.NewAuthService(tokenApi)
+	ticketApi := mustInitTicketApi(postgresPool)
+	chatApi := mustInitChatApi(postgresPool)
 
-	telegramBot := bot.NewBot(typedenv.String("TELEGRAM_TOKEN"), ticketService, chatApi)
+	token := typedenv.String("TELEGRAM_TOKEN")
+	telegramBot := bot.NewBot(token, ticketApi, chatApi)
 	go telegramBot.MustRun()
 
-	rest := controllers.NewRestController(authService, tokenService, ticketService, chatApi)
+	rest := controllers.NewRestController(authApi, tokenApi, ticketApi, chatApi)
 
 	addr := typedenv.String("VORTEX_ADDR")
 
@@ -36,21 +41,30 @@ func main() {
 	}
 }
 
-func mustInitTokenService(ctx context.Context) api.TokenApi {
-	addr := typedenv.String("REDIS_ADDR", ":6379")
-	password := typedenv.String("REDIS_PASSWORD")
+func mustInitTokenApi(client *goredis.Client) api.TokenApi {
+	tokenRepo := redis.NewTokenRepo(client)
+	return services.NewJwtTokenService(tokenRepo)
+}
 
-	client, err := redis.NewClient(ctx, addr, password, 0)
+func mustInitTicketApi(pool *pgxpool.Pool) api.TicketApi {
+	repo, err := postgres.NewTicketRepo(pool)
 	if err != nil {
 		panic(err)
 	}
 
-	tokenRepo := redis.NewTokenRepo(client)
-
-	return services.NewJwtTokenService(tokenRepo)
+	return services.NewTicketService(repo)
 }
 
-func mustInitTicketService(ctx context.Context) api.TicketApi {
+func mustInitChatApi(pool *pgxpool.Pool) api.ChatApi {
+	repo, err := postgres.NewChatRepo(pool)
+	if err != nil {
+		panic(err)
+	}
+
+	return services.NewChatService(repo)
+}
+
+func mustInitPostgres(ctx context.Context) *pgxpool.Pool {
 	user := typedenv.String("POSTGRES_USER")
 	password := typedenv.String("POSTGRES_PASSWORD")
 	addr := typedenv.String("POSTGRES_ADDR", ":5432")
@@ -64,10 +78,17 @@ func mustInitTicketService(ctx context.Context) api.TicketApi {
 		panic(err)
 	}
 
-	repo, err := postgres.NewTicketRepo(pool)
+	return pool
+}
+
+func mustInitRedis(ctx context.Context) *goredis.Client {
+	addr := typedenv.String("REDIS_ADDR", ":6379")
+	password := typedenv.String("REDIS_PASSWORD")
+
+	client, err := redis.NewClient(ctx, addr, password, 0)
 	if err != nil {
 		panic(err)
 	}
 
-	return services.NewTicketService(repo)
+	return client
 }
