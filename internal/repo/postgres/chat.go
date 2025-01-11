@@ -34,7 +34,7 @@ func NewChatRepo(pool *pgxpool.Pool) (repo.ChatReadWriter, error) {
 }
 
 func (repo *ChatRepo) GetMessageHistory(ctx context.Context, ticketId string, limit, offset int) ([]*domain.Message, error) {
-	rows, err := repo.pool.Query(ctx, "SELECT * FROM messages WHERE ticket_id = $1 LIMIT $2 OFFSET $3", ticketId, limit, offset)
+	rows, err := repo.pool.Query(ctx, "SELECT * FROM messages WHERE ticket_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3", ticketId, limit, offset)
 
 	if err != nil && errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrNoMessages

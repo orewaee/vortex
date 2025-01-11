@@ -38,6 +38,12 @@ func (controller *RestController) MuxV1() http.Handler {
 			handlers.NewTicketsHandler(controller.ticketApi), superGroup),
 	))
 
+	v1.Handle("GET /history/{ticket_id}", middlewares.AuthMiddleware(
+		controller.tokenService,
+		middlewares.PermMiddleware(
+			handlers.NewHistoryHandler(controller.chatApi), superGroup),
+	))
+
 	m := melody.New()
 
 	v1.Handle("GET /chat/{ticket_id}", middlewares.AuthMiddleware(
