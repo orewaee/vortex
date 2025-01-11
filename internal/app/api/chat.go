@@ -5,6 +5,7 @@ import (
 	"github.com/orewaee/vortex/internal/app/domain"
 )
 
+// ChatApi contains methods for working with chat
 type ChatApi interface {
 	Subscribe() chan *domain.Message
 	Unsubscribe(connection chan *domain.Message)

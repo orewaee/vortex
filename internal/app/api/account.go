@@ -5,6 +5,7 @@ import (
 	"github.com/orewaee/vortex/internal/app/domain"
 )
 
+// AccountApi contains methods for working with accounts
 type AccountApi interface {
 	GetAccountById(ctx context.Context, id string) (*domain.Account, error)
 	GetAccountByName(ctx context.Context, name string) (*domain.Account, error)

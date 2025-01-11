@@ -19,7 +19,7 @@ type TicketWriter interface {
 	RemoveTicketByChatId(ctx context.Context, chatId int64) error
 }
 
-// TicketReadWriter contains methods for reading and writing tickets
+// TicketReadWriter is a wrapper for TicketReader and TicketWriter
 type TicketReadWriter interface {
 	TicketReader
 	TicketWriter
