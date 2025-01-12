@@ -5,15 +5,17 @@ import (
 	"github.com/orewaee/typedenv"
 	"github.com/orewaee/vortex/internal/app/api"
 	"github.com/orewaee/vortex/internal/app/domain"
+	"github.com/rs/zerolog"
 	"time"
 )
 
 type AuthService struct {
 	tokenService api.TokenApi
+	log          *zerolog.Logger
 }
 
-func NewAuthService(tokenService api.TokenApi) api.AuthApi {
-	return &AuthService{tokenService}
+func NewAuthService(tokenService api.TokenApi, log *zerolog.Logger) api.AuthApi {
+	return &AuthService{tokenService, log}
 }
 
 func (service *AuthService) Login(ctx context.Context, name string, password string) (string, string, error) {
@@ -48,10 +50,12 @@ func (service *AuthService) Login(ctx context.Context, name string, password str
 	}, typedenv.String("REFRESH_KEY"))
 
 	if err != nil {
+		service.log.Err(err).Send()
 		return "", "", err
 	}
 
 	if err := service.tokenService.WhitelistToken(ctx, refresh, lifetime); err != nil {
+		service.log.Err(err).Send()
 		return "", "", err
 	}
 
@@ -59,5 +63,11 @@ func (service *AuthService) Login(ctx context.Context, name string, password str
 }
 
 func (service *AuthService) Refresh(ctx context.Context, refreshToken string) (string, string, error) {
-	return service.tokenService.RefreshToken(ctx, refreshToken)
+	accessToken, refreshToken, err := service.tokenService.RefreshToken(ctx, refreshToken)
+	if err != nil {
+		service.log.Err(err).Send()
+		return "", "", err
+	}
+
+	return accessToken, refreshToken, nil
 }

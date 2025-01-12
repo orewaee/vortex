@@ -9,10 +9,12 @@ import (
 	"github.com/orewaee/vortex/internal/bot"
 	"github.com/orewaee/vortex/internal/config"
 	"github.com/orewaee/vortex/internal/controllers"
+	"github.com/orewaee/vortex/internal/logger"
 	"github.com/orewaee/vortex/internal/repo/postgres"
 	"github.com/orewaee/vortex/internal/repo/redis"
 	"github.com/orewaee/vortex/internal/services"
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog"
 )
 
 func main() {
@@ -23,16 +25,21 @@ func main() {
 	postgresPool := mustInitPostgres(ctx)
 	redisClient := mustInitRedis(ctx)
 
+	log, err := logger.NewZerolog()
+	if err != nil {
+		panic(err)
+	}
+
 	tokenApi := mustInitTokenApi(redisClient)
-	authApi := services.NewAuthService(tokenApi)
-	ticketApi := mustInitTicketApi(postgresPool)
-	chatApi := mustInitChatApi(postgresPool)
+	authApi := services.NewAuthService(tokenApi, log)
+	ticketApi := mustInitTicketApi(postgresPool, log)
+	chatApi := mustInitChatApi(postgresPool, log)
 
 	token := typedenv.String("TELEGRAM_TOKEN")
-	telegramBot := bot.NewBot(token, ticketApi, chatApi)
+	telegramBot := bot.NewBot(token, ticketApi, chatApi, log)
 	go telegramBot.MustRun()
 
-	rest := controllers.NewRestController(authApi, tokenApi, ticketApi, chatApi)
+	rest := controllers.NewRestController(authApi, tokenApi, ticketApi, chatApi, log)
 
 	addr := typedenv.String("VORTEX_ADDR")
 
@@ -46,22 +53,22 @@ func mustInitTokenApi(client *goredis.Client) api.TokenApi {
 	return services.NewJwtTokenService(tokenRepo)
 }
 
-func mustInitTicketApi(pool *pgxpool.Pool) api.TicketApi {
+func mustInitTicketApi(pool *pgxpool.Pool, log *zerolog.Logger) api.TicketApi {
 	repo, err := postgres.NewTicketRepo(pool)
 	if err != nil {
 		panic(err)
 	}
 
-	return services.NewTicketService(repo)
+	return services.NewTicketService(repo, log)
 }
 
-func mustInitChatApi(pool *pgxpool.Pool) api.ChatApi {
+func mustInitChatApi(pool *pgxpool.Pool, log *zerolog.Logger) api.ChatApi {
 	repo, err := postgres.NewChatRepo(pool)
 	if err != nil {
 		panic(err)
 	}
 
-	return services.NewChatService(repo)
+	return services.NewChatService(repo, log)
 }
 
 func mustInitPostgres(ctx context.Context) *pgxpool.Pool {

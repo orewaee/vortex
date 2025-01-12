@@ -4,19 +4,29 @@ import (
 	"github.com/orewaee/vortex/internal/app/api"
 	"github.com/orewaee/vortex/internal/handlers"
 	"github.com/orewaee/vortex/internal/middlewares"
-	"log"
+	"github.com/rs/zerolog"
 	"net/http"
 )
 
 type RestController struct {
-	authService  api.AuthApi
-	tokenService api.TokenApi
-	ticketApi    api.TicketApi
-	chatApi      api.ChatApi
+	authApi   api.AuthApi
+	tokenApi  api.TokenApi
+	ticketApi api.TicketApi
+	chatApi   api.ChatApi
+	log       *zerolog.Logger
 }
 
-func NewRestController(authService api.AuthApi, tokenService api.TokenApi, ticketApi api.TicketApi, chatApi api.ChatApi) *RestController {
-	return &RestController{authService, tokenService, ticketApi, chatApi}
+func NewRestController(
+	authApi api.AuthApi, tokenApi api.TokenApi,
+	ticketApi api.TicketApi, chatApi api.ChatApi,
+	log *zerolog.Logger) *RestController {
+	return &RestController{
+		authApi:   authApi,
+		tokenApi:  tokenApi,
+		ticketApi: ticketApi,
+		chatApi:   chatApi,
+		log:       log,
+	}
 }
 
 func (controller *RestController) Run(addr string) error {
@@ -31,7 +41,6 @@ func (controller *RestController) Run(addr string) error {
 		Handler: mux,
 	}
 
-	log.Printf("running on %s\n", addr)
-
+	controller.log.Info().Msgf("running on %s", addr)
 	return server.ListenAndServe()
 }

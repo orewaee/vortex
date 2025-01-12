@@ -15,11 +15,11 @@ import (
 func (controller *RestController) MuxV1() http.Handler {
 	v1 := http.NewServeMux()
 
-	v1.Handle("POST /login", handlers.NewLoginHandler(controller.authService))
+	v1.Handle("POST /login", handlers.NewLoginHandler(controller.authApi))
 	v1.HandleFunc("OPTIONS /login", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(http.StatusOK)
 	})
-	v1.Handle("POST /refresh", handlers.NewRefreshHandler(controller.authService))
+	v1.Handle("POST /refresh", handlers.NewRefreshHandler(controller.authApi))
 	// v1.Handle("POST /register", nil)
 
 	superGroup := &domain.PermGroup{
@@ -28,18 +28,18 @@ func (controller *RestController) MuxV1() http.Handler {
 	}
 
 	v1.Handle("GET /super", middlewares.AuthMiddleware(
-		controller.tokenService,
+		controller.tokenApi,
 		middlewares.PermMiddleware(&handlers.SuperHandler{}, superGroup),
 	))
 
 	v1.Handle("GET /tickets", middlewares.AuthMiddleware(
-		controller.tokenService,
+		controller.tokenApi,
 		middlewares.PermMiddleware(
 			handlers.NewTicketsHandler(controller.ticketApi), superGroup),
 	))
 
 	v1.Handle("GET /history/{ticket_id}", middlewares.AuthMiddleware(
-		controller.tokenService,
+		controller.tokenApi,
 		middlewares.PermMiddleware(
 			handlers.NewHistoryHandler(controller.chatApi), superGroup),
 	))
@@ -47,7 +47,7 @@ func (controller *RestController) MuxV1() http.Handler {
 	m := melody.New()
 
 	v1.Handle("GET /chat/{ticket_id}", middlewares.AuthMiddleware(
-		controller.tokenService,
+		controller.tokenApi,
 		middlewares.PermMiddleware(
 			http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 				fmt.Println(request.Method, request.RequestURI)
@@ -60,7 +60,7 @@ func (controller *RestController) MuxV1() http.Handler {
 	go func() {
 		messages := controller.chatApi.Subscribe()
 		defer controller.chatApi.Unsubscribe(messages)
-		log.Println("listening chat messages in controller...")
+		controller.log.Info().Msg("listening chat messages in controller...")
 		for {
 			message := <-messages
 			if message.FromSupport {
@@ -86,7 +86,7 @@ func (controller *RestController) MuxV1() http.Handler {
 
 		ticketId := session.Request.PathValue("ticket_id")
 
-		_, err := controller.ticketApi.GetTicketById(session.Request.Context(), ticketId)
+		_, err := controller.ticketApi.GetTicketById(session.Request.Context(), ticketId, false)
 		if err != nil {
 			log.Println("HANDLE CONNECT", err)
 			session.Close()

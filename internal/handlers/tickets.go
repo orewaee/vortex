@@ -47,6 +47,7 @@ func (handler *TicketsHandler) ServeHTTP(writer http.ResponseWriter, request *ht
 			Id:        ticket.Id,
 			ChatId:    ticket.ChatId,
 			Topic:     ticket.Topic,
+			Closed:    ticket.Closed,
 			CreatedAt: ticket.CreatedAt,
 		}
 	}

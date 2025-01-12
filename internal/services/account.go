@@ -5,14 +5,16 @@ import (
 	"github.com/orewaee/typedenv"
 	"github.com/orewaee/vortex/internal/app/api"
 	"github.com/orewaee/vortex/internal/app/domain"
+	"github.com/rs/zerolog"
 	"time"
 )
 
 type AccountService struct {
+	log *zerolog.Logger
 }
 
-func NewAccountService() api.AccountApi {
-	return &AccountService{}
+func NewAccountService(log *zerolog.Logger) api.AccountApi {
+	return &AccountService{log}
 }
 
 func (service AccountService) GetAccountById(ctx context.Context, id string) (*domain.Account, error) {

@@ -8,18 +8,21 @@ import (
 	"github.com/orewaee/vortex/internal/app/domain"
 	"github.com/orewaee/vortex/internal/app/repo"
 	"github.com/orewaee/vortex/internal/broker"
+	"github.com/rs/zerolog"
 	"time"
 )
 
 type ChatService struct {
 	broker   *broker.Broker[*domain.Message]
 	chatRepo repo.ChatReadWriter
+	log      *zerolog.Logger
 }
 
-func NewChatService(chatRepo repo.ChatReadWriter) api.ChatApi {
+func NewChatService(chatRepo repo.ChatReadWriter, log *zerolog.Logger) api.ChatApi {
 	return &ChatService{
 		broker:   broker.New[*domain.Message](),
 		chatRepo: chatRepo,
+		log:      log,
 	}
 }
 
@@ -32,7 +35,13 @@ func (service *ChatService) Unsubscribe(connection chan *domain.Message) {
 }
 
 func (service *ChatService) GetMessageHistory(ctx context.Context, ticketId string, limit, offset int) ([]*domain.Message, error) {
-	return service.chatRepo.GetMessageHistory(ctx, ticketId, limit, offset)
+	messages, err := service.chatRepo.GetMessageHistory(ctx, ticketId, limit, offset)
+	if err != nil {
+		service.log.Err(err).Send()
+		return nil, err
+	}
+
+	return messages, nil
 }
 
 func (service *ChatService) SendMessage(ctx context.Context, sender string, fromSupport bool, ticketId string, text string) error {
@@ -49,5 +58,11 @@ func (service *ChatService) SendMessage(ctx context.Context, sender string, from
 
 	service.broker.Publish(message)
 
-	return service.chatRepo.AddMessage(ctx, message)
+	err := service.chatRepo.AddMessage(ctx, message)
+	if err != nil {
+		service.log.Err(err).Send()
+		return err
+	}
+
+	return nil
 }
