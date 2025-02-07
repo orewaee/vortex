@@ -5,13 +5,29 @@ import (
 	"github.com/orewaee/vortex/internal/app/domain"
 )
 
-// TicketApi contains methods for working with chat
 type TicketApi interface {
-	GetTickets(ctx context.Context, limit, offset int) ([]*domain.Ticket, error)
-	GetTicketById(ctx context.Context, id string, closed bool) (*domain.Ticket, error)
-	GetTicketByChatId(ctx context.Context, chatId int64, closed bool) (*domain.Ticket, error)
+	// GetTicketById
+	//
+	// May return domain.ErrNoTicket
+	GetTicketById(ctx context.Context, id string) (*domain.Ticket, error)
 
-	OpenTicket(ctx context.Context, chatId int64, topic string) (*domain.Ticket, error)
+	// GetTicketByChatId
+	//
+	// May return domain.ErrNoTicket
+	GetTicketByChatId(ctx context.Context, chatId int64) (*domain.Ticket, error)
+
+	// OpenTicket
+	//
+	// May return domain.ErrTicketAlreadyOpen
+	OpenTicket(ctx context.Context, chatId int64, topic string) error
+
+	// CloseTicketById closes an open ticket with the specified id
+	//
+	// May return domain.NoTicket, domain.ErrTicketAlreadyClosed
 	CloseTicketById(ctx context.Context, id string) error
-	CloseTicketByChatId(ctx context.Context, chatId int64) error
+
+	// CloseTicketByChatId closes an open ticket with the specified chatId
+	//
+	// May return domain.ErrTicketAlreadyClosed
+	CloseTicketByChatId(ctx context.Context, id string) error
 }

@@ -2,8 +2,8 @@ package controllers
 
 import (
 	"github.com/orewaee/vortex/internal/app/api"
+	"github.com/orewaee/vortex/internal/cors"
 	"github.com/orewaee/vortex/internal/handlers"
-	"github.com/orewaee/vortex/internal/middlewares"
 	"github.com/rs/zerolog"
 	"net/http"
 )
@@ -32,13 +32,19 @@ func NewRestController(
 func (controller *RestController) Run(addr string) error {
 	mux := http.NewServeMux()
 
+	optionsHandler := func(writer http.ResponseWriter, _ *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+	}
+
+	mux.HandleFunc("OPTIONS /*", optionsHandler)
+
 	mux.Handle("GET /ping", &handlers.PingHandler{})
 
-	mux.Handle("/v1/", middlewares.CorsMiddleware(controller.MuxV1()))
+	mux.Handle("/v1/", controller.MuxV1())
 
 	server := &http.Server{
 		Addr:    addr,
-		Handler: mux,
+		Handler: cors.NewDefault().Middleware(mux),
 	}
 
 	controller.log.Info().Msgf("running on %s", addr)
