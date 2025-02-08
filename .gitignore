@@ -6,5 +6,3 @@
 /config/*.env
 
 /logs
-
-vortex.duckdb
