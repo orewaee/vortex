@@ -1,10 +1,8 @@
 #!/bin/bash
-ENV_FILE_PATH=config/.env
-FILE_PATH=deploy/compose.yaml
-PROJECT_NAME=vortex
-
 docker compose \
-  --env-file config/.env \
-  --file $FILE_PATH \
-  --project-name $PROJECT_NAME \
-  up --detach
+  -f ./deploy/compose.yaml \
+  -p vortex_app \
+  --env-file ./config/postgres.env \
+  --env-file ./config/pgadmin.env \
+  --env-file ./config/redis.env \
+  up -d

@@ -16,10 +16,16 @@ type TicketApi interface {
 	// May return domain.ErrNoTicket
 	GetTicketByChatId(ctx context.Context, chatId int64) (*domain.Ticket, error)
 
+	// GetTickets returns a slice of tickets with different closed values.
+	GetTickets(ctx context.Context, page, perPage int) ([]*domain.Ticket, error)
+
+	// GetTicketsByClosed returns a slice of tickets with the specified closed value.
+	GetTicketsByClosed(ctx context.Context, closed bool, page, perPage int) ([]*domain.Ticket, error)
+
 	// OpenTicket
 	//
 	// May return domain.ErrTicketAlreadyOpen
-	OpenTicket(ctx context.Context, chatId int64, topic string) error
+	OpenTicket(ctx context.Context, chatId int64, topic string) (*domain.Ticket, error)
 
 	// CloseTicketById closes an open ticket with the specified id
 	//
@@ -29,5 +35,5 @@ type TicketApi interface {
 	// CloseTicketByChatId closes an open ticket with the specified chatId
 	//
 	// May return domain.ErrTicketAlreadyClosed
-	CloseTicketByChatId(ctx context.Context, id string) error
+	CloseTicketByChatId(ctx context.Context, chatId int64) error
 }

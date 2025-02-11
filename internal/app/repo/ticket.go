@@ -5,27 +5,36 @@ import (
 	"github.com/orewaee/vortex/internal/app/domain"
 )
 
-// TicketReader contains methods for reading tickets
 type TicketReader interface {
-	// GetTickets returns a slice of tickets (open and closed)
-	GetTickets(ctx context.Context, limit, offset int) ([]*domain.Ticket, error)
+	// GetTicketById returns the ticket with the specified id.
+	//
+	// May return domain.ErrNoTicket
+	GetTicketById(ctx context.Context, id string) (*domain.Ticket, error)
 
-	// GetTicketById returns a ticket with the specified id
-	GetTicketById(ctx context.Context, id string, closed bool) (*domain.Ticket, error)
+	// GetTicketByChatId returns an open ticket with the specified chat id.
+	//
+	// May return domain.ErrNoTicket
+	GetTicketByChatId(ctx context.Context, chatId int64) (*domain.Ticket, error)
 
-	// GetTicketByChatId returns a ticket with the specified chatId
-	GetTicketByChatId(ctx context.Context, chatId int64, closed bool) (*domain.Ticket, error)
+	// GetTickets returns a slice of tickets with different closed values.
+	GetTickets(ctx context.Context, page, perPage int) ([]*domain.Ticket, error)
+
+	// GetTicketsByClosed returns a slice of tickets with the specified closed value.
+	GetTicketsByClosed(ctx context.Context, closed bool, page, perPage int) ([]*domain.Ticket, error)
 }
 
-// TicketWriter contains methods for writing tickets
 type TicketWriter interface {
+	// AddTicket adds a new ticket
+	//
+	// May return domain.ErrTicketAlreadyExists
 	AddTicket(ctx context.Context, ticket *domain.Ticket) error
-	RemoveTicketById(ctx context.Context, id string) error
-	RemoveTicketByChatId(ctx context.Context, chatId int64) error
+
+	// SetTicketClosed sets the closed value of a ticket
+	//
+	// May return domain.ErrNoTicket
 	SetTicketClosed(ctx context.Context, id string, closed bool) error
 }
 
-// TicketReadWriter is a wrapper for TicketReader and TicketWriter
 type TicketReadWriter interface {
 	TicketReader
 	TicketWriter
