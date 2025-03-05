@@ -186,7 +186,7 @@ func (repo *TicketRepo) AddTicket(ctx context.Context, ticket *domain.Ticket) er
 	}
 
 	if exists {
-		return domain.ErrTicketAlreadyExists
+		return domain.ErrTicketExists
 	}
 
 	_, err = tx.Exec(ctx, "INSERT INTO tickets (id, chat_id, topic, closed, created_at) VALUES ($1, $2, $3, $4, $5)",

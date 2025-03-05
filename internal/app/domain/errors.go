@@ -3,13 +3,13 @@ package domain
 import "errors"
 
 var (
-	ErrNoTicket = errors.New("no ticket found")
+	ErrNoTicket     = errors.New("no ticket found")
+	ErrTicketExists = errors.New("ticket already exists")
 
 	// todo remove 'already' from name
 
-	ErrTicketAlreadyExists = errors.New("ticket already exists")
-	ErrTicketAlreadyOpen   = errors.New("ticket already open")
-	ErrTicketAlreadyClosed = errors.New("ticket already closed")
+	ErrTicketOpen   = errors.New("ticket already open")
+	ErrTicketClosed = errors.New("ticket already closed")
 
 	ErrNoTickets      = errors.New("no tickets found")
 	ErrTicketNotFound = errors.New("ticket not found")

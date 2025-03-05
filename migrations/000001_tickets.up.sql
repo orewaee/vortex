@@ -1,0 +1,15 @@
+BEGIN;
+
+CREATE TABLE tickets (
+    id CHAR(18) PRIMARY KEY,
+    chat_id BIGINT NOT NULL,
+    topic VARCHAR(64) NOT NULL,
+    closed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_tickets
+    ON tickets (chat_id)
+    WHERE closed = FALSE;
+
+COMMIT;

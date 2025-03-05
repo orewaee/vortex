@@ -26,7 +26,7 @@ type TicketReader interface {
 type TicketWriter interface {
 	// AddTicket adds a new ticket
 	//
-	// May return domain.ErrTicketAlreadyExists
+	// May return domain.ErrTicketExists
 	AddTicket(ctx context.Context, ticket *domain.Ticket) error
 
 	// SetTicketClosed sets the closed value of a ticket
