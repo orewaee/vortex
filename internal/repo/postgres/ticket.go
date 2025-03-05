@@ -17,32 +17,28 @@ func NewTicketRepo(pool *pgxpool.Pool) repo.TicketReadWriter {
 	return &TicketRepo{pool}
 }
 
-func (repo *TicketRepo) GetTicketById(ctx context.Context, id string) (*domain.Ticket, error) {
-	tx, err := repo.pool.Begin(ctx)
+func scanTicket(row pgx.CollectableRow) (*domain.Ticket, error) {
+	ticket := new(domain.Ticket)
+	err := row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
 	if err != nil {
 		return nil, err
 	}
 
-	defer func() {
-		if err != nil {
-			tx.Rollback(ctx)
-		}
-	}()
+	return ticket, nil
+}
 
-	ticket := new(domain.Ticket)
+func (repo *TicketRepo) GetTicketById(ctx context.Context, id string) (*domain.Ticket, error) {
+	var ticket *domain.Ticket
+	err := withTx(ctx, repo.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, "SELECT * FROM tickets WHERE id = $1", id)
+		return row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
+	})
 
-	row := tx.QueryRow(ctx, "SELECT * FROM tickets WHERE id = $1", id)
-	err = row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
-
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrNoTicket
 	}
 
 	if err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
@@ -50,23 +46,13 @@ func (repo *TicketRepo) GetTicketById(ctx context.Context, id string) (*domain.T
 }
 
 func (repo *TicketRepo) GetTicketByChatId(ctx context.Context, chatId int64) (*domain.Ticket, error) {
-	tx, err := repo.pool.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
+	var ticket *domain.Ticket
+	err := withTx(ctx, repo.pool, func(tx pgx.Tx) error {
+		row := tx.QueryRow(ctx, "SELECT * FROM tickets WHERE chat_id = $1 AND closed = false", chatId)
+		return row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
+	})
 
-	defer func() {
-		if err != nil {
-			tx.Rollback(ctx)
-		}
-	}()
-
-	ticket := new(domain.Ticket)
-
-	row := tx.QueryRow(ctx, "SELECT * FROM tickets WHERE chat_id = $1 AND closed = false", chatId)
-	err = row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
-
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domain.ErrNoTicket
 	}
 
@@ -74,49 +60,23 @@ func (repo *TicketRepo) GetTicketByChatId(ctx context.Context, chatId int64) (*d
 		return nil, err
 	}
 
-	if err := tx.Commit(ctx); err != nil {
-		return nil, err
-	}
-
 	return ticket, nil
 }
 
 func (repo *TicketRepo) GetTickets(ctx context.Context, page, perPage int) ([]*domain.Ticket, error) {
-	tx, err := repo.pool.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
+	var tickets []*domain.Ticket
+	err := withTx(ctx, repo.pool, func(tx pgx.Tx) error {
+		offset := page * perPage
+		rows, err := tx.Query(ctx, "SELECT * FROM tickets LIMIT $1 OFFSET $2", perPage, offset)
 		if err != nil {
-			tx.Rollback(ctx)
-		}
-	}()
-
-	rows, err := tx.Query(ctx, "SELECT * FROM tickets LIMIT $1 OFFSET $2", perPage, page*perPage)
-
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return []*domain.Ticket{}, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	tickets, err := pgx.CollectRows[*domain.Ticket](rows, func(row pgx.CollectableRow) (*domain.Ticket, error) {
-		ticket := new(domain.Ticket)
-		if err = row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt); err != nil {
-			return nil, err
+			return err
 		}
 
-		return ticket, nil
+		tickets, err = pgx.CollectRows[*domain.Ticket](rows, scanTicket)
+		return err
 	})
 
 	if err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
@@ -124,41 +84,19 @@ func (repo *TicketRepo) GetTickets(ctx context.Context, page, perPage int) ([]*d
 }
 
 func (repo *TicketRepo) GetTicketsByClosed(ctx context.Context, closed bool, page, perPage int) ([]*domain.Ticket, error) {
-	tx, err := repo.pool.Begin(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	defer func() {
+	var tickets []*domain.Ticket
+	err := withTx(ctx, repo.pool, func(tx pgx.Tx) error {
+		offset := page * perPage
+		rows, err := tx.Query(ctx, "SELECT * FROM tickets WHERE closed = $1 LIMIT $2 OFFSET $3", closed, perPage, offset)
 		if err != nil {
-			tx.Rollback(ctx)
-		}
-	}()
-
-	rows, err := tx.Query(ctx, "SELECT * FROM tickets WHERE closed = $1 LIMIT $2 OFFSET $3", closed, perPage, page*perPage)
-
-	if err != nil && errors.Is(err, pgx.ErrNoRows) {
-		return []*domain.Ticket{}, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	tickets, err := pgx.CollectRows[*domain.Ticket](rows, func(row pgx.CollectableRow) (*domain.Ticket, error) {
-		ticket := new(domain.Ticket)
-		if err = row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt); err != nil {
-			return nil, err
+			return err
 		}
 
-		return ticket, nil
+		tickets, err = pgx.CollectRows[*domain.Ticket](rows, scanTicket)
+		return err
 	})
 
 	if err != nil {
-		return nil, err
-	}
-
-	if err := tx.Commit(ctx); err != nil {
 		return nil, err
 	}
 
@@ -166,68 +104,36 @@ func (repo *TicketRepo) GetTicketsByClosed(ctx context.Context, closed bool, pag
 }
 
 func (repo *TicketRepo) AddTicket(ctx context.Context, ticket *domain.Ticket) error {
-	tx, err := repo.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
+	return withTx(ctx, repo.pool, func(tx pgx.Tx) error {
+		exists := false
+		err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 as alias FROM tickets WHERE id = $1) as E", ticket.Id).Scan(&exists)
 		if err != nil {
-			tx.Rollback(ctx)
+			return err
 		}
-	}()
 
-	exists := false
-	err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT FROM tickets WHERE id = $1) as E", ticket.Id).
-		Scan(&exists)
+		if exists {
+			return domain.ErrTicketExists
+		}
 
-	if err != nil {
+		_, err = tx.Exec(ctx, "INSERT INTO tickets (id, chat_id, topic, closed, created_at) VALUES ($1, $2, $3, $4, $5)",
+			&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
 		return err
-	}
-
-	if exists {
-		return domain.ErrTicketExists
-	}
-
-	_, err = tx.Exec(ctx, "INSERT INTO tickets (id, chat_id, topic, closed, created_at) VALUES ($1, $2, $3, $4, $5)",
-		&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
-
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	})
 }
 
-func (repo *TicketRepo) SetTicketClosed(ctx context.Context, id string, closed bool) error {
-	tx, err := repo.pool.Begin(ctx)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
+func (repo *TicketRepo) SetTicketClosedById(ctx context.Context, id string, closed bool) error {
+	return withTx(ctx, repo.pool, func(tx pgx.Tx) error {
+		exists := false
+		err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 as alias FROM tickets WHERE id = $1) as E", id).Scan(&exists)
 		if err != nil {
-			tx.Rollback(ctx)
+			return err
 		}
-	}()
 
-	exists := false
-	err = tx.QueryRow(ctx, "SELECT EXISTS(SELECT FROM tickets WHERE id = $1) as E", id).
-		Scan(&exists)
+		if !exists {
+			return domain.ErrNoTicket
+		}
 
-	if err != nil {
+		_, err = tx.Exec(ctx, "UPDATE tickets SET closed = $1 WHERE id = $2", closed, id)
 		return err
-	}
-
-	if !exists {
-		return domain.ErrNoTicket
-	}
-
-	_, err = tx.Exec(ctx, "UPDATE tickets SET closed = $1 WHERE id = $2", closed, id)
-
-	if err != nil {
-		return err
-	}
-
-	return tx.Commit(ctx)
+	})
 }

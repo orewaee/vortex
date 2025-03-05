@@ -8,12 +8,12 @@ import (
 type TicketReader interface {
 	// GetTicketById returns the ticket with the specified id.
 	//
-	// May return domain.ErrNoTicket
+	// May return domain.ErrNoTicket.
 	GetTicketById(ctx context.Context, id string) (*domain.Ticket, error)
 
-	// GetTicketByChatId returns an open ticket with the specified chat id.
+	// GetTicketByChatId returns an open ticket with the specified ticketId.
 	//
-	// May return domain.ErrNoTicket
+	// May return domain.ErrNoTicket.
 	GetTicketByChatId(ctx context.Context, chatId int64) (*domain.Ticket, error)
 
 	// GetTickets returns a slice of tickets with different closed values.
@@ -24,15 +24,15 @@ type TicketReader interface {
 }
 
 type TicketWriter interface {
-	// AddTicket adds a new ticket
+	// AddTicket adds a new ticket.
 	//
-	// May return domain.ErrTicketExists
+	// May return domain.ErrTicketExists.
 	AddTicket(ctx context.Context, ticket *domain.Ticket) error
 
-	// SetTicketClosed sets the closed value of a ticket
+	// SetTicketClosedById sets the closed value of a ticket.
 	//
-	// May return domain.ErrNoTicket
-	SetTicketClosed(ctx context.Context, id string, closed bool) error
+	// May return domain.ErrNoTicket.
+	SetTicketClosedById(ctx context.Context, id string, closed bool) error
 }
 
 type TicketReadWriter interface {

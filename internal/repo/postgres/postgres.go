@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -12,4 +13,19 @@ func NewPool(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 	}
 
 	return pool, nil
+}
+
+func withTx(ctx context.Context, pool *pgxpool.Pool, wrapper func(tx pgx.Tx) error) error {
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+		}
+	}()
+
+	return wrapper(tx)
 }

@@ -34,7 +34,7 @@ type TicketApi interface {
 	// May return domain.NoTicket, domain.ErrTicketClosed
 	CloseTicketById(ctx context.Context, id string) error
 
-	// CloseTicketByChatId closes an open ticket with the specified chatId
+	// CloseTicketByChatId closes an open ticket with the specified chatId.
 	//
 	// May return domain.ErrTicketClosed
 	CloseTicketByChatId(ctx context.Context, chatId int64) error
