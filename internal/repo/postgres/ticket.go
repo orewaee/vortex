@@ -106,7 +106,7 @@ func (repo *TicketRepo) GetTicketsByClosed(ctx context.Context, closed bool, pag
 func (repo *TicketRepo) AddTicket(ctx context.Context, ticket *domain.Ticket) error {
 	return withTx(ctx, repo.pool, func(tx pgx.Tx) error {
 		exists := false
-		err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 as alias FROM tickets WHERE id = $1) as E", ticket.Id).Scan(&exists)
+		err := tx.QueryRow(ctx, "SELECT EXISTS(SELECT 1 as alias FROM tickets WHERE chat_id = $1 AND closed = FALSE) as E", ticket.ChatId).Scan(&exists)
 		if err != nil {
 			return err
 		}
