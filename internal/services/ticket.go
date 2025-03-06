@@ -93,7 +93,7 @@ func (service *TicketService) OpenTicket(ctx context.Context, chatId int64, topi
 		service.log.Error().Err(err).Send()
 	}
 
-	return ticket, nil
+	return nil, err
 }
 
 func (service *TicketService) CloseTicketById(ctx context.Context, id string) error {

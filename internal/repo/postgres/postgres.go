@@ -23,7 +23,9 @@ func withTx(ctx context.Context, pool *pgxpool.Pool, wrapper func(tx pgx.Tx) err
 
 	defer func() {
 		if err != nil {
-			tx.Rollback(ctx)
+			_ = tx.Rollback(ctx)
+		} else {
+			_ = tx.Commit(ctx)
 		}
 	}()
 

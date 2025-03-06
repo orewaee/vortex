@@ -15,9 +15,11 @@ func MustLoad() {
 		"config/redis.env",
 	}
 
-	err := godotenv.Load(envs...)
-	if err != nil && !os.IsNotExist(err) {
-		panic(err)
+	for i := range envs {
+		err := godotenv.Load(envs[i])
+		if err != nil && !os.IsNotExist(err) {
+			panic(err)
+		}
 	}
 
 	typedenv.DefaultString("VORTEX_ADDR", ":8080")
