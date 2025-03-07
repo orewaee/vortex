@@ -28,7 +28,7 @@ func scanTicket(row pgx.CollectableRow) (*domain.Ticket, error) {
 }
 
 func (repo *TicketRepo) GetTicketById(ctx context.Context, id string) (*domain.Ticket, error) {
-	var ticket *domain.Ticket
+	ticket := new(domain.Ticket)
 	err := withTx(ctx, repo.pool, func(tx pgx.Tx) error {
 		row := tx.QueryRow(ctx, "SELECT * FROM tickets WHERE id = $1", id)
 		return row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
@@ -46,7 +46,7 @@ func (repo *TicketRepo) GetTicketById(ctx context.Context, id string) (*domain.T
 }
 
 func (repo *TicketRepo) GetTicketByChatId(ctx context.Context, chatId int64) (*domain.Ticket, error) {
-	var ticket *domain.Ticket
+	ticket := new(domain.Ticket)
 	err := withTx(ctx, repo.pool, func(tx pgx.Tx) error {
 		row := tx.QueryRow(ctx, "SELECT * FROM tickets WHERE chat_id = $1 AND closed = false", chatId)
 		return row.Scan(&ticket.Id, &ticket.ChatId, &ticket.Topic, &ticket.Closed, &ticket.CreatedAt)
@@ -84,7 +84,7 @@ func (repo *TicketRepo) GetTickets(ctx context.Context, page, perPage int) ([]*d
 }
 
 func (repo *TicketRepo) GetTicketsByClosed(ctx context.Context, closed bool, page, perPage int) ([]*domain.Ticket, error) {
-	var tickets []*domain.Ticket
+	tickets := make([]*domain.Ticket, 0)
 	err := withTx(ctx, repo.pool, func(tx pgx.Tx) error {
 		offset := page * perPage
 		rows, err := tx.Query(ctx, "SELECT * FROM tickets WHERE closed = $1 LIMIT $2 OFFSET $3", closed, perPage, offset)

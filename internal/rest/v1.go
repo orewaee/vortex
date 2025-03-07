@@ -1,4 +1,4 @@
-package controllers
+package rest
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 	"sync/atomic"
 )
 
-func (controller *RestController) MuxV1() http.Handler {
+func (controller *Controller) MuxV1() http.Handler {
 	v1 := http.NewServeMux()
 
 	v1.Handle("POST /login", handlers.NewLoginHandler(controller.authApi))
@@ -86,7 +86,7 @@ func (controller *RestController) MuxV1() http.Handler {
 
 		ticketId := session.Request.PathValue("ticket_id")
 
-		_, err := controller.ticketApi.GetTicketById(session.Request.Context(), ticketId, false)
+		_, err := controller.ticketApi.GetTicketById(session.Request.Context(), ticketId)
 		if err != nil {
 			log.Println("HANDLE CONNECT", err)
 			session.Close()

@@ -2,12 +2,11 @@ package services
 
 import (
 	"context"
-	gonanoid "github.com/matoous/go-nanoid/v2"
-	"github.com/orewaee/typedenv"
 	"github.com/orewaee/vortex/internal/app/api"
 	"github.com/orewaee/vortex/internal/app/domain"
 	"github.com/orewaee/vortex/internal/app/repo"
 	"github.com/orewaee/vortex/internal/broker"
+	"github.com/orewaee/vortex/internal/utils"
 	"github.com/rs/zerolog"
 	"time"
 )
@@ -45,10 +44,8 @@ func (service *ChatService) GetMessageHistory(ctx context.Context, ticketId stri
 }
 
 func (service *ChatService) SendMessage(ctx context.Context, sender string, fromSupport bool, ticketId string, text string) error {
-	id := gonanoid.MustGenerate(typedenv.String("ALPHABET"), 8)
-
 	message := &domain.Message{
-		Id:          id,
+		Id:          utils.MustNewId(),
 		Sender:      sender,
 		FromSupport: fromSupport,
 		TicketId:    ticketId,

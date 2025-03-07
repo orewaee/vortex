@@ -1,4 +1,4 @@
-package bot
+package telegram
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/orewaee/vortex/internal/app/api"
 	"github.com/orewaee/vortex/internal/app/domain"
+	"github.com/orewaee/vortex/internal/app/driving"
 	"github.com/rs/zerolog"
 	"strings"
 )
@@ -18,7 +19,11 @@ type Bot struct {
 	log       *zerolog.Logger
 }
 
-func NewBot(token string, ticketApi api.TicketApi, chatApi api.ChatApi, log *zerolog.Logger) *Bot {
+func NewBot(
+	token string,
+	ticketApi api.TicketApi,
+	chatApi api.ChatApi,
+	log *zerolog.Logger) driving.Bot {
 	botApi, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		panic(err)
@@ -32,7 +37,7 @@ func NewBot(token string, ticketApi api.TicketApi, chatApi api.ChatApi, log *zer
 	}
 }
 
-func (bot *Bot) MustRun() {
+func (bot *Bot) Run() error {
 	ctx := context.Background()
 
 	bot.botApi.Debug = false
@@ -44,13 +49,19 @@ func (bot *Bot) MustRun() {
 	go func() {
 		messages := bot.chatApi.Subscribe()
 		defer bot.chatApi.Unsubscribe(messages)
-		bot.log.Info().Msg("listening chat messages in bot...")
+
+		bot.log.Info().Msg("listening chat messages in telegram...")
 
 		for {
 			message := <-messages
 			if message.FromSupport {
-				ticket, err := bot.ticketApi.GetTicketById(ctx, message.TicketId, false)
-				if err != nil || ticket == nil {
+				ticket, err := bot.ticketApi.GetTicketById(ctx, message.TicketId)
+				if errors.Is(err, domain.ErrNoTicket) {
+					continue
+				}
+
+				if err != nil {
+					bot.log.Err(err).Send()
 					continue
 				}
 
@@ -74,8 +85,13 @@ func (bot *Bot) MustRun() {
 
 			chatId := query.Message.Chat.ID
 
-			ticket, err := bot.ticketApi.GetTicketByChatId(ctx, chatId, false)
-			if ticket == nil || err != nil {
+			ticket, err := bot.ticketApi.GetTicketByChatId(ctx, chatId)
+			if errors.Is(err, domain.ErrNoTicket) {
+				continue
+			}
+
+			if err != nil {
+				bot.log.Err(err).Send()
 				continue
 			}
 
@@ -96,8 +112,8 @@ func (bot *Bot) MustRun() {
 		if strings.HasPrefix(message.Text, "/ticket") {
 			topic := message.CommandArguments()
 
-			ticket, err := bot.ticketApi.GetTicketByChatId(ctx, message.Chat.ID, false)
-			if err != nil && !errors.Is(err, domain.ErrTicketNotFound) {
+			ticket, err := bot.ticketApi.GetTicketByChatId(ctx, message.Chat.ID)
+			if err != nil && !errors.Is(err, domain.ErrNoTicket) {
 				bot.log.Err(err).Send()
 				continue
 			}
@@ -158,8 +174,13 @@ func (bot *Bot) MustRun() {
 			continue
 		}
 
-		ticket, err := bot.ticketApi.GetTicketByChatId(ctx, message.Chat.ID, false)
-		if err != nil || ticket == nil {
+		ticket, err := bot.ticketApi.GetTicketByChatId(ctx, message.Chat.ID)
+		if errors.Is(err, domain.ErrNoTicket) {
+			continue
+		}
+
+		if err != nil {
+			bot.log.Err(err).Send()
 			continue
 		}
 
@@ -171,4 +192,10 @@ func (bot *Bot) MustRun() {
 
 		bot.chatApi.SendMessage(ctx, name, false, ticket.Id, message.Text)
 	}
+
+	return nil
+}
+
+func (bot *Bot) Shutdown(ctx context.Context) error {
+	return nil
 }

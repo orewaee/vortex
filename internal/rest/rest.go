@@ -1,14 +1,18 @@
-package controllers
+package rest
 
 import (
+	"context"
 	"github.com/orewaee/vortex/internal/app/api"
+	"github.com/orewaee/vortex/internal/app/driving"
 	"github.com/orewaee/vortex/internal/cors"
 	"github.com/orewaee/vortex/internal/handlers"
 	"github.com/rs/zerolog"
 	"net/http"
 )
 
-type RestController struct {
+type Controller struct {
+	addr      string
+	server    *http.Server
 	authApi   api.AuthApi
 	tokenApi  api.TokenApi
 	ticketApi api.TicketApi
@@ -16,11 +20,17 @@ type RestController struct {
 	log       *zerolog.Logger
 }
 
-func NewRestController(
-	authApi api.AuthApi, tokenApi api.TokenApi,
-	ticketApi api.TicketApi, chatApi api.ChatApi,
-	log *zerolog.Logger) *RestController {
-	return &RestController{
+func NewController(
+	addr string,
+	server *http.Server,
+	authApi api.AuthApi,
+	tokenApi api.TokenApi,
+	ticketApi api.TicketApi,
+	chatApi api.ChatApi,
+	log *zerolog.Logger) driving.Controller {
+	return &Controller{
+		addr:      addr,
+		server:    server,
 		authApi:   authApi,
 		tokenApi:  tokenApi,
 		ticketApi: ticketApi,
@@ -29,7 +39,7 @@ func NewRestController(
 	}
 }
 
-func (controller *RestController) Run(addr string) error {
+func (controller *Controller) Run() error {
 	mux := http.NewServeMux()
 
 	optionsHandler := func(writer http.ResponseWriter, _ *http.Request) {
@@ -43,10 +53,14 @@ func (controller *RestController) Run(addr string) error {
 	mux.Handle("/v1/", controller.MuxV1())
 
 	server := &http.Server{
-		Addr:    addr,
+		Addr:    controller.addr,
 		Handler: cors.NewDefault().Middleware(mux),
 	}
 
-	controller.log.Info().Msgf("running on %s", addr)
+	controller.log.Info().Msgf("running on %s", controller.addr)
 	return server.ListenAndServe()
+}
+
+func (controller *Controller) Shutdown(ctx context.Context) error {
+	return controller.server.Shutdown(ctx)
 }

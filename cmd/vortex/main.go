@@ -6,13 +6,13 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/orewaee/typedenv"
 	"github.com/orewaee/vortex/internal/app/api"
-	"github.com/orewaee/vortex/internal/bot"
 	"github.com/orewaee/vortex/internal/config"
-	"github.com/orewaee/vortex/internal/controllers"
 	"github.com/orewaee/vortex/internal/logger"
 	"github.com/orewaee/vortex/internal/repo/postgres"
 	"github.com/orewaee/vortex/internal/repo/redis"
+	"github.com/orewaee/vortex/internal/rest"
 	"github.com/orewaee/vortex/internal/services"
+	"github.com/orewaee/vortex/internal/telegram"
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 )
@@ -36,10 +36,10 @@ func main() {
 	chatApi := mustInitChatApi(postgresPool, log)
 
 	token := typedenv.String("TELEGRAM_TOKEN")
-	telegramBot := bot.NewBot(token, ticketApi, chatApi, log)
+	telegramBot := telegram.NewBot(token, ticketApi, chatApi, log)
 	go telegramBot.MustRun()
 
-	rest := controllers.NewRestController(authApi, tokenApi, ticketApi, chatApi, log)
+	rest := rest.NewRestController(authApi, tokenApi, ticketApi, chatApi, log)
 
 	addr := typedenv.String("VORTEX_ADDR")
 
