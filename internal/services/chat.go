@@ -29,8 +29,8 @@ func (service *ChatService) Subscribe() chan *domain.Message {
 	return service.broker.Subscribe()
 }
 
-func (service *ChatService) Unsubscribe(connection chan *domain.Message) {
-	service.broker.Unsubscribe(connection)
+func (service *ChatService) Unsubscribe(conn chan *domain.Message) {
+	service.broker.Unsubscribe(conn)
 }
 
 func (service *ChatService) GetMessageHistory(ctx context.Context, ticketId string, limit, offset int) ([]*domain.Message, error) {

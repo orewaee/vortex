@@ -2,15 +2,16 @@ package builders
 
 import (
 	"github.com/orewaee/vortex/internal/app/api"
-	"github.com/orewaee/vortex/internal/app/repo"
+	"github.com/orewaee/vortex/internal/app/driving"
 	"github.com/rs/zerolog"
 )
 
 type RestControllerBuilder interface {
-	Builder[api.Controller]
-	AccountRepo(accountRepo repo.AccountReadWriter) AuthServiceBuilder
-	LoginCodeRepo(loginCodeRepo repo.LoginCodeReadWriter) AuthServiceBuilder
-	TokenRepo(tokenRepo repo.TokenReadWriter) AuthServiceBuilder
+	Builder[driving.Controller]
+
+	// AccountRepo(accountRepo repo.AccountReadWriter) RestControllerBuilder
+	// LoginCodeRepo(loginCodeRepo repo.LoginCo) RestControllerBuilder
+	// TokenRepo(tokenRepo repo.TokenReadWriter) RestControllerBuilder
 }
 
 type restControllerBuilder struct {
@@ -21,6 +22,8 @@ type restControllerBuilder struct {
 	logger    *zerolog.Logger
 }
 
+/*
 func NewRestControllerBuilder() RestControllerBuilder {
 	return restControllerBuilder{}
 }
+*/

@@ -22,8 +22,8 @@ func main() {
 
 	ctx := context.Background()
 
-	postgresPool := mustInitPostgres(ctx)
-	redisClient := mustInitRedis(ctx)
+	postgresPool := mustInitPostgresPool(ctx)
+	redisClient := mustInitRedisClient(ctx)
 
 	log, err := logger.NewZerolog()
 	if err != nil {
@@ -37,13 +37,12 @@ func main() {
 
 	token := typedenv.String("TELEGRAM_TOKEN")
 	telegramBot := telegram.NewBot(token, ticketApi, chatApi, log)
-	go telegramBot.MustRun()
-
-	rest := rest.NewRestController(authApi, tokenApi, ticketApi, chatApi, log)
+	go telegramBot.Run()
 
 	addr := typedenv.String("VORTEX_ADDR")
+	controller := rest.NewController(addr, authApi, tokenApi, ticketApi, chatApi, log)
 
-	if err := rest.Run(addr); err != nil {
+	if err := controller.Run(); err != nil {
 		panic(err)
 	}
 }
@@ -54,31 +53,22 @@ func mustInitTokenApi(client *goredis.Client) api.TokenApi {
 }
 
 func mustInitTicketApi(pool *pgxpool.Pool, log *zerolog.Logger) api.TicketApi {
-	repo, err := postgres.NewTicketRepo(pool)
-	if err != nil {
-		panic(err)
-	}
-
+	repo := postgres.NewTicketRepo(pool)
 	return services.NewTicketService(repo, log)
 }
 
 func mustInitChatApi(pool *pgxpool.Pool, log *zerolog.Logger) api.ChatApi {
-	repo, err := postgres.NewChatRepo(pool)
-	if err != nil {
-		panic(err)
-	}
-
+	repo := postgres.NewChatRepo(pool)
 	return services.NewChatService(repo, log)
 }
 
-func mustInitPostgres(ctx context.Context) *pgxpool.Pool {
+func mustInitPostgresPool(ctx context.Context) *pgxpool.Pool {
 	user := typedenv.String("POSTGRES_USER")
 	password := typedenv.String("POSTGRES_PASSWORD")
-	addr := typedenv.String("POSTGRES_ADDR", ":5432")
-	database := typedenv.String("POSTGRES_DATABASE")
+	host := typedenv.String("POSTGRES_HOST")
+	port := typedenv.String("POSTGRES_PORT")
 
-	connString := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable",
-		user, password, addr, database)
+	connString := fmt.Sprintf("postgres://%s:%s@%s:%s/vortex?sslmode=disable", user, password, host, port)
 
 	pool, err := postgres.NewPool(ctx, connString)
 	if err != nil {
@@ -88,9 +78,12 @@ func mustInitPostgres(ctx context.Context) *pgxpool.Pool {
 	return pool
 }
 
-func mustInitRedis(ctx context.Context) *goredis.Client {
-	addr := typedenv.String("REDIS_ADDR", ":6379")
+func mustInitRedisClient(ctx context.Context) *goredis.Client {
+	host := typedenv.String("REDIS_HOST")
+	port := typedenv.String("REDIS_PORT")
 	password := typedenv.String("REDIS_PASSWORD")
+
+	addr := fmt.Sprintf("%s:%s", host, port)
 
 	client, err := redis.NewClient(ctx, addr, password, 0)
 	if err != nil {
