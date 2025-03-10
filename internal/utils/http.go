@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 // MustWriteBytes writes a slice of bytes to the writer and sets the status code
@@ -44,4 +45,18 @@ func MustReadJson[T interface{}](request *http.Request) *T {
 	}
 
 	return data
+}
+
+func IntQueryParam(request *http.Request, key string) int {
+	raw := request.URL.Query().Get(key)
+	if raw == "" {
+		return 0
+	}
+
+	param, err := strconv.Atoi(raw)
+	if err != nil {
+		return 0
+	}
+
+	return param
 }

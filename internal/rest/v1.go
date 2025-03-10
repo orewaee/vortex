@@ -38,6 +38,7 @@ func (controller *Controller) MuxV1() http.Handler {
 	*/
 
 	v1.HandleFunc("GET /chat/{ticket_id}", controller.getChat)
+	v1.HandleFunc("GET /chat/history/{ticket_id}", controller.getChatHistory)
 
 	go func() {
 		messages := controller.chatApi.Subscribe()
