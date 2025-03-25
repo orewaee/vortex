@@ -1,6 +1,6 @@
 module github.com/orewaee/vortex
 
-go 1.23.4
+go 1.24
 
 require (
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
@@ -8,7 +8,6 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/joho/godotenv v1.5.1
-	github.com/matoous/go-nanoid/v2 v2.1.0
 	github.com/olahol/melody v1.2.1
 	github.com/orewaee/typedenv v1.1.0
 	github.com/redis/go-redis/v9 v9.7.0
